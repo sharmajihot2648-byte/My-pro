@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ESP32 Face Lock Demo</title>
+<style>
+  body{font-family:system-ui,Arial,sans-serif;max-width:760px;margin:20px auto;padding:0 14px;background:#f4f6f8;color:#17202a}
+  .card{background:white;border-radius:14px;padding:16px;margin:14px 0;box-shadow:0 2px 12px #0001}
+  h1{font-size:1.45rem} label{display:block;margin:10px 0 5px;font-weight:600}
+  input,button{font:inherit;padding:10px;border-radius:8px;border:1px solid #bbc3cc;max-width:100%}
+  input{width:calc(100% - 24px)} button{cursor:pointer;background:#173f6b;color:white;border:0;margin:5px 5px 5px 0}
+  button.secondary{background:#56616e} button.danger{background:#9c2f2f}
+  video{width:100%;max-height:420px;background:#111;border-radius:10px}
+  #status{padding:10px;border-radius:8px;background:#edf1f5;white-space:pre-wrap}
+  .warn{color:#8a3b00;background:#fff3df;padding:10px;border-radius:8px}
+  small{color:#52606d} code{overflow-wrap:anywhere}
+</style>
+</head>
+<body>
+<h1>ESP32 Face Lock — Test Page</h1>
+<div class="card">
+  <p class="warn"><b>Safety:</b> This is a starter demo, not secure door-access control. It does not unlock automatically. Test the camera and ESP32 commands first, with the physical lock disconnected. The ESP32's current /open URL has no authentication, so anyone on the same network may be able to trigger it.</p>
+  <label for="camera">IP Webcam stream URL</label>
+  <input id="camera" value="http://192.168.43.194:8080/video" autocomplete="off">
+  <button id="loadCamera">Load camera</button>
+  <div style="margin-top:10px"><video id="video" controls autoplay muted playsinline></video></div>
+  <small>If the video does not appear, open <code>http://192.168.43.194:8080</code> in the second phone's browser and use the Video URL shown by IP Webcam. Some browser/app combinations block cross-device HTTP video; this page cannot bypass that restriction.</small>
+</div>
+<div class="card">
+  <h2>ESP32 connection test</h2>
+  <label for="esp">ESP32 base URL</label>
+  <input id="esp" value="http://192.168.43.95" autocomplete="off">
+  <button id="test">Test ESP32 page</button>
+  <button id="open" class="danger">Manual OPEN test</button>
+  <button id="close" class="secondary">Manual CLOSE test</button>
+  <p id="status">Ready. Load camera or test ESP32.</p>
+  <small>Manual buttons send GET requests to /open and /close. If your ESP32 code uses different paths, change the URLs in the ESP32 code/page.</small>
+</div>
+<div class="card">
+  <h2>Face recognition status</h2>
+  <p>This starter page does <b>not</b> recognize or enroll faces yet. A proper face-matching stage needs a face-recognition model and registered reference image/descriptor. It must be tested before enabling any unlock action.</p>
+</div>
+<script>
+const $ = id => document.getElementById(id);
+function setStatus(s){ $('status').textContent=s; }
+$('loadCamera').addEventListener('click',()=>{
+  const u=$('camera').value.trim();
+  $('video').src=u;
+  $('video').load();
+  $('video').play().catch(()=>setStatus('Camera URL loaded. If video stays blank, check the exact stream URL in IP Webcam.'));
+  setStatus('Trying camera stream: '+u);
+});
+$('test').addEventListener('click',async()=>{
+  const base=$('esp').value.trim().replace(/\/+$/,'');
+  try{
+    const r=await fetch(base+'/',{mode:'no-cors'});
+    setStatus('Sent request to ESP32 page. With no-cors, browser cannot confirm the response. Open '+base+' in a separate tab to verify.');
+  }catch(e){setStatus('Could not reach ESP32 from this page. Check same Wi-Fi/hotspot and IP. Browser HTTP/CORS restrictions may also block it.');}
+});
+$('open').addEventListener('click',()=>{
+  const base=$('esp').value.trim().replace(/\/+$/,'');
+  window.open(base+'/open','_blank');
+  setStatus('Opened /open in a new tab. Confirm the ESP32 page response and keep the physical lock disconnected during testing.');
+});
+$('close').addEventListener('click',()=>{
+  const base=$('esp').value.trim().replace(/\/+$/,'');
+  window.open(base+'/close','_blank');
+  setStatus('Opened /close in a new tab. Confirm the ESP32 page response.');
+});
+</script>
+</body>
+</html>
